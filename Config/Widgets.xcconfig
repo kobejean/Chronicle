@@ -1,0 +1,26 @@
+// Widgets.xcconfig
+// Configuration for ChronicleWidgets extension target
+// Generated for Chronicle Widget Extension
+
+#include "Shared.xcconfig"
+
+// ==========================================
+// Widget Extension Identity
+// ==========================================
+PRODUCT_NAME = ChronicleWidgets
+PRODUCT_BUNDLE_IDENTIFIER = $(PRODUCT_BUNDLE_IDENTIFIER).widgets
+
+// ==========================================
+// Widget Extension Settings
+// ==========================================
+INFOPLIST_FILE = ChronicleWidgets/Info.plist
+
+// ==========================================
+// Entitlements
+// ==========================================
+CODE_SIGN_ENTITLEMENTS = Config/ChronicleWidgets.entitlements
+
+// ==========================================
+// Framework Search Paths
+// ==========================================
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks @executable_path/../../Frameworks

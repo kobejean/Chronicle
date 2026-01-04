@@ -3,6 +3,7 @@ import SwiftData
 
 public struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(TimeTracker.self) private var timeTracker
     @Query(sort: \TrackedTask.sortOrder) private var tasks: [TrackedTask]
     @State private var showingAddTask = false
 
@@ -58,9 +59,16 @@ public struct TaskListView: View {
     }
 
     private func deleteActiveTasks(at offsets: IndexSet) {
+        var deletedFavorite = false
         for index in offsets {
             let task = activeTasks[index]
+            if task.isFavorite {
+                deletedFavorite = true
+            }
             modelContext.delete(task)
+        }
+        if deletedFavorite {
+            timeTracker.syncFavoriteTasks(from: modelContext)
         }
     }
 
@@ -77,6 +85,8 @@ public struct TaskListView: View {
         for (index, task) in tasks.enumerated() {
             task.sortOrder = index
         }
+        // Sync favorites as order may have changed
+        timeTracker.syncFavoriteTasks(from: modelContext)
     }
 
     public init() {}
@@ -111,6 +121,7 @@ struct TaskRow: View {
 struct AddTaskSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(TimeTracker.self) private var timeTracker
 
     @State private var name = ""
     @State private var selectedColor: TaskColor = .blue
@@ -171,6 +182,12 @@ struct AddTaskSheet: View {
         let task = TrackedTask(name: name, colorHex: selectedColor.rawValue)
         task.isFavorite = isFavorite
         modelContext.insert(task)
+
+        // Sync favorites to widgets if this is a favorite task
+        if isFavorite {
+            timeTracker.syncFavoriteTasks(from: modelContext)
+        }
+
         dismiss()
     }
 }
@@ -178,6 +195,7 @@ struct AddTaskSheet: View {
 struct TaskDetailView: View {
     @Bindable var task: TrackedTask
     @Environment(\.modelContext) private var modelContext
+    @Environment(TimeTracker.self) private var timeTracker
 
     var body: some View {
         Form {
@@ -232,6 +250,12 @@ struct TaskDetailView: View {
             }
         }
         .navigationTitle("Edit Task")
+        .onChange(of: task.isFavorite) {
+            timeTracker.syncFavoriteTasks(from: modelContext)
+        }
+        .onChange(of: task.isArchived) {
+            timeTracker.syncFavoriteTasks(from: modelContext)
+        }
     }
 }
 

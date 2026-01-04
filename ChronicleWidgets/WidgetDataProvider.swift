@@ -3,8 +3,8 @@ import SwiftUI
 import WidgetKit
 
 /// Provides shared data access between the main app and widgets via App Groups
-@MainActor
-final class WidgetDataProvider {
+/// Note: Thread-safe for widget timeline providers (UserDefaults is thread-safe)
+final class WidgetDataProvider: @unchecked Sendable {
     static let shared = WidgetDataProvider()
 
     private let appGroupIdentifier = "group.chronicle.shared"
@@ -41,18 +41,20 @@ final class WidgetDataProvider {
         )
     }
 
-    func setActiveTask(name: String, colorHex: String, startTime: Date) {
+    func setActiveTask(id: String, name: String, colorHex: String, startTime: Date) {
         guard let defaults = userDefaults else { return }
-        let task = SharedActiveTask(name: name, colorHex: colorHex, startTime: startTime)
+        let task = SharedActiveTask(id: id, name: name, colorHex: colorHex, startTime: startTime)
         if let data = try? JSONEncoder().encode(task) {
             defaults.set(data, forKey: activeTaskKey)
         }
         WidgetCenter.shared.reloadTimelines(ofKind: "ActiveTaskWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "FavoriteTasksWidget")
     }
 
     func clearActiveTask() {
         userDefaults?.removeObject(forKey: activeTaskKey)
         WidgetCenter.shared.reloadTimelines(ofKind: "ActiveTaskWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "FavoriteTasksWidget")
     }
 
     // MARK: - Favorite Tasks
@@ -111,8 +113,8 @@ struct SharedActiveTask: Codable {
     let colorHex: String
     let startTime: Date
 
-    init(name: String, colorHex: String, startTime: Date) {
-        self.id = UUID().uuidString
+    init(id: String, name: String, colorHex: String, startTime: Date) {
+        self.id = id
         self.name = name
         self.colorHex = colorHex
         self.startTime = startTime

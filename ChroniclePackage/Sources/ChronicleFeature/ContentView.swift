@@ -3,7 +3,6 @@ import SwiftData
 
 public struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-
     @State private var selectedTab = 0
     @State private var timeTracker = TimeTracker()
     @State private var locationService = LocationService()
@@ -66,8 +65,9 @@ public struct ContentView: View {
         // Sync geofences on launch
         geofenceManager.syncGeofences()
 
-        // Load active entry
+        // Load active entry and sync widgets
         timeTracker.loadActiveEntry(from: modelContext)
+        timeTracker.syncFavoriteTasks(from: modelContext)
     }
 
     public init() {}

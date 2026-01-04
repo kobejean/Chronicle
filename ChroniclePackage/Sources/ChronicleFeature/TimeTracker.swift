@@ -186,9 +186,18 @@ public final class TimeTracker {
         stopCurrentEntry(in: context)
 
         // Create new entry
-        let entry = TimeEntry(task: task, startTime: Date())
+        let startTime = Date()
+        let entry = TimeEntry(task: task, startTime: startTime)
         context.insert(entry)
         activeEntry = entry
+
+        // Sync to widgets
+        WidgetDataProvider.shared.setActiveTask(
+            id: task.id.uuidString,
+            name: task.name,
+            colorHex: task.colorHex,
+            startTime: startTime
+        )
 
         // Check for pomodoro settings
         if let settings = task.pomodoroSettings, settings.isEnabled {
@@ -401,6 +410,9 @@ public final class TimeTracker {
         // Stop GPS tracking
         locationService?.stopTracking()
 
+        // Sync to widgets
+        WidgetDataProvider.shared.clearActiveTask()
+
         try? context.save()
     }
 
@@ -424,6 +436,17 @@ public final class TimeTracker {
 
         if let entries = try? context.fetch(descriptor), let running = entries.first {
             activeEntry = running
+
+            // Sync to widgets
+            if let task = running.task {
+                WidgetDataProvider.shared.setActiveTask(
+                    id: task.id.uuidString,
+                    name: task.name,
+                    colorHex: task.colorHex,
+                    startTime: running.startTime
+                )
+            }
+
             // Restore pomodoro state if applicable
             if let task = running.task,
                let settings = task.pomodoroSettings,
@@ -433,11 +456,30 @@ public final class TimeTracker {
                 // Start a fresh work session
                 startPomodoroPhase(.working(sessionNumber: 1, totalSessions: settings.sessionsBeforeLongBreak))
             }
+        } else {
+            // No active entry - ensure widgets are cleared
+            WidgetDataProvider.shared.clearActiveTask()
         }
     }
 
     /// Whether the current pomodoro phase is paused (waiting to start)
     public var isPomodoroPhaseWaiting: Bool {
         pomodoroState.isActive && pomodoroPhaseEndTime == nil
+    }
+
+    /// Sync favorite tasks to widgets
+    public func syncFavoriteTasks(from context: ModelContext) {
+        let descriptor = FetchDescriptor<TrackedTask>(
+            predicate: #Predicate { $0.isFavorite && !$0.isArchived },
+            sortBy: [SortDescriptor(\.sortOrder)]
+        )
+
+        guard let tasks = try? context.fetch(descriptor) else { return }
+
+        let widgetTasks = tasks.prefix(4).map { task in
+            (id: task.id.uuidString, name: task.name, colorHex: task.colorHex)
+        }
+
+        WidgetDataProvider.shared.setFavoriteTasks(Array(widgetTasks))
     }
 }
