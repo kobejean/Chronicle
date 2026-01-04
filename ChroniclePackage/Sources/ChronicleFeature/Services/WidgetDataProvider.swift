@@ -2,6 +2,13 @@ import Foundation
 import SwiftUI
 import WidgetKit
 
+// MARK: - Pending Widget Action
+
+public enum PendingWidgetAction: Codable, Sendable {
+    case start(taskId: String)
+    case stop(taskId: String)
+}
+
 /// Provides shared data access between the main app and widgets via App Groups
 @MainActor
 public final class WidgetDataProvider: Sendable {
@@ -10,6 +17,7 @@ public final class WidgetDataProvider: Sendable {
     private let appGroupIdentifier = "group.chronicle.shared"
     private let activeTaskKey = "activeTask"
     private let favoriteTasksKey = "favoriteTasks"
+    private let pendingActionKey = "pendingWidgetAction"
 
     private var userDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupIdentifier)
@@ -52,6 +60,24 @@ public final class WidgetDataProvider: Sendable {
     /// Reload all widget timelines
     public func reloadAllWidgets() {
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    // MARK: - Pending Actions
+
+    /// Get pending action from widget (if any)
+    public func getPendingAction() -> PendingWidgetAction? {
+        guard let defaults = userDefaults,
+              let data = defaults.data(forKey: pendingActionKey),
+              let action = try? JSONDecoder().decode(PendingWidgetAction.self, from: data) else {
+            return nil
+        }
+        return action
+    }
+
+    /// Clear pending action after processing
+    public func clearPendingAction() {
+        userDefaults?.removeObject(forKey: pendingActionKey)
+        reloadAllWidgets()
     }
 }
 

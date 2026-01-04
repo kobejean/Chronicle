@@ -45,6 +45,10 @@ public struct ContentView: View {
         .environment(geofenceManager)
         .task {
             configureServices()
+            processPendingWidgetActions()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            processPendingWidgetActions()
         }
     }
 
@@ -68,6 +72,22 @@ public struct ContentView: View {
         // Load active entry and sync widgets
         timeTracker.loadActiveEntry(from: modelContext)
         timeTracker.syncFavoriteTasks(from: modelContext)
+    }
+
+    private func processPendingWidgetActions() {
+        guard let action = WidgetDataProvider.shared.getPendingAction() else { return }
+
+        switch action {
+        case .start(let taskId):
+            guard let uuid = UUID(uuidString: taskId) else { break }
+            timeTracker.startTaskByID(uuid, in: modelContext)
+        case .stop(let taskId):
+            if timeTracker.activeEntry?.task?.id.uuidString == taskId {
+                timeTracker.stopCurrentEntry(in: modelContext)
+            }
+        }
+
+        WidgetDataProvider.shared.clearPendingAction()
     }
 
     public init() {}

@@ -2,6 +2,13 @@ import Foundation
 import SwiftUI
 import WidgetKit
 
+// MARK: - Pending Widget Action
+
+enum PendingWidgetAction: Codable {
+    case start(taskId: String)
+    case stop(taskId: String)
+}
+
 /// Provides shared data access between the main app and widgets via App Groups
 /// Note: Thread-safe for widget timeline providers (UserDefaults is thread-safe)
 final class WidgetDataProvider: @unchecked Sendable {
@@ -10,6 +17,7 @@ final class WidgetDataProvider: @unchecked Sendable {
     private let appGroupIdentifier = "group.chronicle.shared"
     private let activeTaskKey = "activeTask"
     private let favoriteTasksKey = "favoriteTasks"
+    private let pendingActionKey = "pendingWidgetAction"
 
     private var userDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupIdentifier)
@@ -89,13 +97,48 @@ final class WidgetDataProvider: @unchecked Sendable {
         WidgetCenter.shared.reloadTimelines(ofKind: "FavoriteTasksWidget")
     }
 
-    func toggleTask(id: String) async {
-        // This will be called from the widget intent
-        // The main app should handle the actual toggling via App Intents
-        WidgetCenter.shared.reloadAllTimelines()
+    // MARK: - Pending Actions
+
+    func setPendingAction(_ action: PendingWidgetAction) {
+        guard let defaults = userDefaults else { return }
+        if let data = try? JSONEncoder().encode(action) {
+            defaults.set(data, forKey: pendingActionKey)
+        }
     }
 
-    private func getActiveTaskId() -> String? {
+    func getPendingAction() -> PendingWidgetAction? {
+        guard let defaults = userDefaults,
+              let data = defaults.data(forKey: pendingActionKey),
+              let action = try? JSONDecoder().decode(PendingWidgetAction.self, from: data) else {
+            return nil
+        }
+        return action
+    }
+
+    func clearPendingAction() {
+        userDefaults?.removeObject(forKey: pendingActionKey)
+    }
+
+    // MARK: - Combined Entry
+
+    func getCombinedEntry() -> CombinedWidgetEntry {
+        let activeEntry = getCurrentTaskEntry()
+        let favoriteEntry = getFavoriteTasksEntry()
+
+        return CombinedWidgetEntry(
+            date: Date(),
+            activeTaskId: getActiveTaskId(),
+            activeTaskName: activeEntry.taskName,
+            activeTaskColor: activeEntry.taskColor,
+            activeStartTime: activeEntry.startTime,
+            isRunning: activeEntry.isRunning,
+            favoriteTasks: favoriteEntry.tasks
+        )
+    }
+
+    // MARK: - Helper Methods
+
+    func getActiveTaskId() -> String? {
         guard let defaults = userDefaults,
               let data = defaults.data(forKey: activeTaskKey),
               let activeTask = try? JSONDecoder().decode(SharedActiveTask.self, from: data) else {
@@ -103,6 +146,47 @@ final class WidgetDataProvider: @unchecked Sendable {
         }
         return activeTask.id
     }
+
+    func getFavoriteTask(id: String) -> SharedTask? {
+        guard let defaults = userDefaults,
+              let data = defaults.data(forKey: favoriteTasksKey),
+              let tasks = try? JSONDecoder().decode([SharedTask].self, from: data) else {
+            return nil
+        }
+        return tasks.first { $0.id == id }
+    }
+}
+
+// MARK: - Widget Entry Types
+
+struct ActiveTaskEntry: TimelineEntry {
+    let date: Date
+    let taskName: String?
+    let taskColor: Color
+    let startTime: Date?
+    let isRunning: Bool
+}
+
+struct FavoriteTasksEntry: TimelineEntry {
+    let date: Date
+    let tasks: [WidgetTask]
+}
+
+struct WidgetTask: Identifiable {
+    let id: String
+    let name: String
+    let color: Color
+    let isRunning: Bool
+}
+
+struct CombinedWidgetEntry: TimelineEntry {
+    let date: Date
+    let activeTaskId: String?
+    let activeTaskName: String?
+    let activeTaskColor: Color
+    let activeStartTime: Date?
+    let isRunning: Bool
+    let favoriteTasks: [WidgetTask]
 }
 
 // MARK: - Shared Data Models

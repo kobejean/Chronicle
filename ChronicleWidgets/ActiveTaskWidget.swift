@@ -1,14 +1,6 @@
 import WidgetKit
 import SwiftUI
 
-struct ActiveTaskEntry: TimelineEntry {
-    let date: Date
-    let taskName: String?
-    let taskColor: Color
-    let startTime: Date?
-    let isRunning: Bool
-}
-
 struct ActiveTaskProvider: TimelineProvider {
     func placeholder(in context: Context) -> ActiveTaskEntry {
         ActiveTaskEntry(

@@ -80,7 +80,10 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ActiveTaskWidget.swift,
+				ChronicleWidgets.swift,
 				ChronicleWidgetsBundle.swift,
+				ChronicleWidgetsControl.swift,
+				CombinedTaskWidget.swift,
 				FavoriteTasksWidget.swift,
 				Info.plist,
 				WidgetDataProvider.swift,

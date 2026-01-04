@@ -11,7 +11,9 @@ import SwiftUI
 @main
 struct ChronicleWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        ChronicleWidgets()
+        ActiveTaskWidget()
+        FavoriteTasksWidget()
+        CombinedTaskWidget()
         ChronicleWidgetsControl()
     }
 }

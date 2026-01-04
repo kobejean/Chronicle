@@ -2,18 +2,6 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 
-struct FavoriteTasksEntry: TimelineEntry {
-    let date: Date
-    let tasks: [WidgetTask]
-}
-
-struct WidgetTask: Identifiable {
-    let id: String
-    let name: String
-    let color: Color
-    let isRunning: Bool
-}
-
 struct FavoriteTasksProvider: TimelineProvider {
     func placeholder(in context: Context) -> FavoriteTasksEntry {
         FavoriteTasksEntry(date: Date(), tasks: [
@@ -145,8 +133,27 @@ struct ToggleTaskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        // Toggle the task in the shared data store
-        await WidgetDataProvider.shared.toggleTask(id: taskId)
+        let provider = WidgetDataProvider.shared
+        let currentActiveId = provider.getActiveTaskId()
+
+        if currentActiveId == taskId {
+            // Stop current task
+            provider.setPendingAction(.stop(taskId: taskId))
+            provider.clearActiveTask()
+        } else {
+            // Start new task (stops any current task)
+            if let task = provider.getFavoriteTask(id: taskId) {
+                provider.setPendingAction(.start(taskId: taskId))
+                // Optimistic UI update for immediate feedback
+                provider.setActiveTask(
+                    id: task.id,
+                    name: task.name,
+                    colorHex: task.colorHex,
+                    startTime: Date()
+                )
+            }
+        }
+
         return .result()
     }
 }
