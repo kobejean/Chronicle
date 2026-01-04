@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "xcode-build": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "xcodebuild-mcp"
+      ],
+      "env": {}
+    }
+  }
+}
