@@ -68,79 +68,79 @@ struct PomodoroTests {
 
         @Test("idle state is not active")
         func idleNotActive() {
-            let state = TimeTracker.PomodoroState.idle
+            let state = PomodoroState.idle
             #expect(state.isActive == false)
         }
 
         @Test("working state is active")
         func workingIsActive() {
-            let state = TimeTracker.PomodoroState.working(sessionNumber: 1, totalSessions: 4)
+            let state = PomodoroState.working(sessionNumber: 1, totalSessions: 4)
             #expect(state.isActive == true)
         }
 
         @Test("shortBreak state is active")
         func shortBreakIsActive() {
-            let state = TimeTracker.PomodoroState.shortBreak(afterSession: 1)
+            let state = PomodoroState.shortBreak(afterSession: 1)
             #expect(state.isActive == true)
         }
 
         @Test("longBreak state is active")
         func longBreakIsActive() {
-            let state = TimeTracker.PomodoroState.longBreak
+            let state = PomodoroState.longBreak
             #expect(state.isActive == true)
         }
 
         @Test("displayName for idle")
         func idleDisplayName() {
-            #expect(TimeTracker.PomodoroState.idle.displayName == "Idle")
+            #expect(PomodoroState.idle.displayName == "Idle")
         }
 
         @Test("displayName for working")
         func workingDisplayName() {
-            #expect(TimeTracker.PomodoroState.working(sessionNumber: 2, totalSessions: 4).displayName == "Working")
+            #expect(PomodoroState.working(sessionNumber: 2, totalSessions: 4).displayName == "Working")
         }
 
         @Test("displayName for shortBreak")
         func shortBreakDisplayName() {
-            #expect(TimeTracker.PomodoroState.shortBreak(afterSession: 1).displayName == "Short Break")
+            #expect(PomodoroState.shortBreak(afterSession: 1).displayName == "Short Break")
         }
 
         @Test("displayName for longBreak")
         func longBreakDisplayName() {
-            #expect(TimeTracker.PomodoroState.longBreak.displayName == "Long Break")
+            #expect(PomodoroState.longBreak.displayName == "Long Break")
         }
 
         @Test("phaseColor for idle is secondary")
         func idlePhaseColor() {
-            #expect(TimeTracker.PomodoroState.idle.phaseColor == .secondary)
+            #expect(PomodoroState.idle.phaseColor == .secondary)
         }
 
         @Test("phaseColor for working is red")
         func workingPhaseColor() {
-            #expect(TimeTracker.PomodoroState.working(sessionNumber: 1, totalSessions: 4).phaseColor == .red)
+            #expect(PomodoroState.working(sessionNumber: 1, totalSessions: 4).phaseColor == .red)
         }
 
         @Test("phaseColor for shortBreak is green")
         func shortBreakPhaseColor() {
-            #expect(TimeTracker.PomodoroState.shortBreak(afterSession: 1).phaseColor == .green)
+            #expect(PomodoroState.shortBreak(afterSession: 1).phaseColor == .green)
         }
 
         @Test("phaseColor for longBreak is blue")
         func longBreakPhaseColor() {
-            #expect(TimeTracker.PomodoroState.longBreak.phaseColor == .blue)
+            #expect(PomodoroState.longBreak.phaseColor == .blue)
         }
 
         @Test("States with different session numbers are not equal")
         func statesNotEqualDifferentSessions() {
-            let state1 = TimeTracker.PomodoroState.working(sessionNumber: 1, totalSessions: 4)
-            let state2 = TimeTracker.PomodoroState.working(sessionNumber: 2, totalSessions: 4)
+            let state1 = PomodoroState.working(sessionNumber: 1, totalSessions: 4)
+            let state2 = PomodoroState.working(sessionNumber: 2, totalSessions: 4)
             #expect(state1 != state2)
         }
 
         @Test("States with same values are equal")
         func statesEqualSameValues() {
-            let state1 = TimeTracker.PomodoroState.working(sessionNumber: 1, totalSessions: 4)
-            let state2 = TimeTracker.PomodoroState.working(sessionNumber: 1, totalSessions: 4)
+            let state1 = PomodoroState.working(sessionNumber: 1, totalSessions: 4)
+            let state2 = PomodoroState.working(sessionNumber: 1, totalSessions: 4)
             #expect(state1 == state2)
         }
     }
@@ -152,10 +152,10 @@ struct PomodoroTests {
 
         @Test("Working sessions track session number")
         func sessionNumberTracking() {
-            let session1 = TimeTracker.PomodoroState.working(sessionNumber: 1, totalSessions: 4)
-            let session2 = TimeTracker.PomodoroState.working(sessionNumber: 2, totalSessions: 4)
-            let session3 = TimeTracker.PomodoroState.working(sessionNumber: 3, totalSessions: 4)
-            let session4 = TimeTracker.PomodoroState.working(sessionNumber: 4, totalSessions: 4)
+            let session1 = PomodoroState.working(sessionNumber: 1, totalSessions: 4)
+            let session2 = PomodoroState.working(sessionNumber: 2, totalSessions: 4)
+            let session3 = PomodoroState.working(sessionNumber: 3, totalSessions: 4)
+            let session4 = PomodoroState.working(sessionNumber: 4, totalSessions: 4)
 
             // All are working states
             #expect(session1.isActive == true)
@@ -170,9 +170,9 @@ struct PomodoroTests {
 
         @Test("Short breaks track after which session")
         func shortBreakAfterSession() {
-            let break1 = TimeTracker.PomodoroState.shortBreak(afterSession: 1)
-            let break2 = TimeTracker.PomodoroState.shortBreak(afterSession: 2)
-            let break3 = TimeTracker.PomodoroState.shortBreak(afterSession: 3)
+            let break1 = PomodoroState.shortBreak(afterSession: 1)
+            let break2 = PomodoroState.shortBreak(afterSession: 2)
+            let break3 = PomodoroState.shortBreak(afterSession: 3)
 
             // Different breaks
             #expect(break1 != break2)
