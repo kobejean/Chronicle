@@ -151,6 +151,7 @@ struct AddTaskSheet: View {
                                         }
                                     }
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.vertical, 8)
@@ -220,6 +221,7 @@ struct TaskDetailView: View {
                                     }
                                 }
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.vertical, 8)
