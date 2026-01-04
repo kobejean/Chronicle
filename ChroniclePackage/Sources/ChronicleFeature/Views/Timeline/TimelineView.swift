@@ -134,36 +134,52 @@ struct TimeBlockView: View {
 struct TimeEntryRow: View {
     let entry: TimeEntry
 
+    private var hasGPSTrail: Bool {
+        !(entry.gpsTrail ?? []).isEmpty
+    }
+
     var body: some View {
-        HStack {
-            Circle()
-                .fill(entry.task?.color ?? .gray)
-                .frame(width: 12, height: 12)
+        NavigationLink {
+            TimeEntryDetailView(entry: entry)
+        } label: {
+            HStack {
+                Circle()
+                    .fill(entry.task?.color ?? .gray)
+                    .frame(width: 12, height: 12)
 
-            VStack(alignment: .leading) {
-                Text(entry.task?.name ?? "Unknown")
-                    .font(.headline)
+                VStack(alignment: .leading) {
+                    Text(entry.task?.name ?? "Unknown")
+                        .font(.headline)
 
-                Text(formatTimeRange())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+                    HStack(spacing: 8) {
+                        Text(formatTimeRange())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
-            Spacer()
+                        if hasGPSTrail {
+                            Label("\((entry.gpsTrail ?? []).count)", systemImage: "location.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
 
-            VStack(alignment: .trailing) {
-                Text(entry.formattedDuration)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                Spacer()
 
-                if entry.isRunning {
-                    Text("Running")
-                        .font(.caption)
-                        .foregroundStyle(.green)
+                VStack(alignment: .trailing) {
+                    Text(entry.formattedDuration)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    if entry.isRunning {
+                        Text("Running")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
                 }
             }
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
     }
 
     private func formatTimeRange() -> String {
@@ -177,6 +193,49 @@ struct TimeEntryRow: View {
         } else {
             return "\(start) - now"
         }
+    }
+}
+
+/// Detail view for a time entry with GPS trail
+struct TimeEntryDetailView: View {
+    let entry: TimeEntry
+
+    private var hasGPSTrail: Bool {
+        !(entry.gpsTrail ?? []).isEmpty
+    }
+
+    var body: some View {
+        List {
+            Section("Time") {
+                LabeledContent("Task", value: entry.task?.name ?? "Unknown")
+                LabeledContent("Start", value: formatTime(entry.startTime))
+                if let endTime = entry.endTime {
+                    LabeledContent("End", value: formatTime(endTime))
+                }
+                LabeledContent("Duration", value: entry.formattedDuration)
+            }
+
+            if hasGPSTrail {
+                Section("Location") {
+                    GPSTrailPreview(timeEntry: entry)
+                }
+            }
+
+            if let notes = entry.notes, !notes.isEmpty {
+                Section("Notes") {
+                    Text(notes)
+                }
+            }
+        }
+        .navigationTitle(entry.task?.name ?? "Time Entry")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
     }
 }
 

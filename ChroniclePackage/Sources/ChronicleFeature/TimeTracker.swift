@@ -3,6 +3,7 @@ import SwiftData
 import Observation
 import AudioToolbox
 import UserNotifications
+import CoreLocation
 
 /// Central time tracking state manager
 @Observable
@@ -22,6 +23,20 @@ public final class TimeTracker {
 
     /// Timer for checking pomodoro phase completion
     private var pomodoroTimer: Timer?
+
+    // MARK: - Location Tracking
+
+    /// Whether GPS trail recording is enabled for time entries
+    public var isGPSTrailEnabled: Bool = false
+
+    /// Reference to location service for GPS trail recording
+    private weak var locationService: LocationService?
+
+    /// Reference to geofence manager
+    private weak var geofenceManager: GeofenceManager?
+
+    /// Model context for GPS point insertion
+    private var gpsModelContext: ModelContext?
 
     public enum PomodoroState: Equatable {
         case idle
@@ -85,6 +100,78 @@ public final class TimeTracker {
         }
     }
 
+    /// Configure location tracking dependencies
+    public func configureLocation(
+        service: LocationService,
+        geofence: GeofenceManager,
+        context: ModelContext
+    ) {
+        self.locationService = service
+        self.geofenceManager = geofence
+        self.gpsModelContext = context
+
+        // Set up location update callback for GPS trail
+        service.onLocationUpdate = { [weak self] location in
+            Task { @MainActor in
+                self?.handleLocationUpdate(location)
+            }
+        }
+
+        // Set up geofence callbacks
+        geofence.onStartTask = { [weak self] taskID in
+            Task { @MainActor in
+                self?.startTaskByID(taskID, in: context)
+            }
+        }
+
+        geofence.onStopTask = { [weak self] in
+            Task { @MainActor in
+                self?.stopCurrentEntry(in: context)
+            }
+        }
+    }
+
+    /// Handle incoming location update - add GPS point to active entry
+    private func handleLocationUpdate(_ location: CLLocation) {
+        guard isGPSTrailEnabled,
+              let entry = activeEntry,
+              let context = gpsModelContext else {
+            return
+        }
+
+        // Filter out inaccurate readings
+        guard location.horizontalAccuracy >= 0,
+              location.horizontalAccuracy < 100 else {
+            return
+        }
+
+        let point = GPSPoint(from: location)
+        point.timeEntry = entry
+        context.insert(point)
+
+        // Append to the trail
+        if entry.gpsTrail == nil {
+            entry.gpsTrail = []
+        }
+        entry.gpsTrail?.append(point)
+
+        try? context.save()
+    }
+
+    /// Start a task by its ID (used by geofence triggers)
+    public func startTaskByID(_ taskID: UUID, in context: ModelContext) {
+        let descriptor = FetchDescriptor<TrackedTask>(
+            predicate: #Predicate { $0.id == taskID }
+        )
+
+        guard let tasks = try? context.fetch(descriptor),
+              let task = tasks.first else {
+            return
+        }
+
+        startTask(task, in: context)
+    }
+
     private func requestNotificationPermission() async {
         do {
             _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
@@ -111,6 +198,11 @@ public final class TimeTracker {
             activePomodoroSettings = nil
             pomodoroState = .idle
             pomodoroPhaseEndTime = nil
+        }
+
+        // Start GPS tracking if enabled
+        if isGPSTrailEnabled {
+            locationService?.startTracking()
         }
 
         try? context.save()
@@ -305,6 +397,10 @@ public final class TimeTracker {
         activePomodoroSettings = nil
         stopPomodoroTimer()
         cancelPomodoroNotifications()
+
+        // Stop GPS tracking
+        locationService?.stopTracking()
+
         try? context.save()
     }
 

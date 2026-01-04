@@ -28,6 +28,17 @@ INFOPLIST_KEY_UISupportedInterfaceOrientations = portrait landscape-left landsca
 INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationLandscapeRight UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown
 
 // ==========================================
+// Location Privacy
+// ==========================================
+INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = Chronicle uses your location to record GPS trails while tracking time. This helps you see where you spent your time.
+INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = Chronicle needs always-on location access to automatically start tracking when you arrive at saved places like your office or gym.
+
+// ==========================================
+// Background Modes
+// ==========================================
+INFOPLIST_KEY_UIBackgroundModes = location processing
+
+// ==========================================
 // Entitlements
 // ==========================================
 // AI agents can modify Config/Chronicle.entitlements to add capabilities
