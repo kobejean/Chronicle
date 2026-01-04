@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 public struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
     @State private var timeTracker = TimeTracker()
 
@@ -38,6 +39,11 @@ public struct ContentView: View {
                 .tag(4)
         }
         .environment(timeTracker)
+        .task {
+            // Load active entry and sync widgets on app launch
+            timeTracker.loadActiveEntry(from: modelContext)
+            timeTracker.syncFavoriteTasks(from: modelContext)
+        }
     }
 
     public init() {}
