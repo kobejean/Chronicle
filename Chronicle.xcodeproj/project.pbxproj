@@ -62,7 +62,6 @@
 				Shared.xcconfig,
 				Tests.xcconfig,
 				Widgets.xcconfig,
-				ChronicleWidgets.entitlements,
 			);
 			target = 8B41F6442DEDD0D5001A66F9 /* Chronicle */;
 		};
@@ -74,7 +73,6 @@
 				Shared.xcconfig,
 				Tests.xcconfig,
 				Widgets.xcconfig,
-				Chronicle.entitlements,
 			);
 			target = WIDGET005000000000000001 /* ChronicleWidgets */;
 		};
@@ -84,8 +82,8 @@
 				ActiveTaskWidget.swift,
 				ChronicleWidgetsBundle.swift,
 				FavoriteTasksWidget.swift,
-				WidgetDataProvider.swift,
 				Info.plist,
+				WidgetDataProvider.swift,
 			);
 			target = 8B41F6442DEDD0D5001A66F9 /* Chronicle */;
 		};

@@ -118,10 +118,14 @@ public final class LocationService: NSObject, Sendable {
         self.locationManager = CLLocationManager()
         super.init()
         locationManager.delegate = self
+        updateAuthorizationStatus()
+    }
+
+    /// Configure background location updates (call after authorization granted)
+    private func configureBackgroundUpdates() {
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.pausesLocationUpdatesAutomatically = false
         locationManager.showsBackgroundLocationIndicator = true
-        updateAuthorizationStatus()
     }
 
     // MARK: - Authorization
@@ -154,6 +158,11 @@ public final class LocationService: NSObject, Sendable {
         guard authorizationStatus.canTrackLocation else {
             errorMessage = "Location permission required"
             return
+        }
+
+        // Configure background updates now that we have authorization
+        if authorizationStatus == .authorizedAlways {
+            configureBackgroundUpdates()
         }
 
         updateLocationManagerSettings()
