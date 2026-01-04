@@ -14,14 +14,11 @@ public final class GeofenceManager {
     /// Reference to location service for geofence monitoring
     private weak var locationService: LocationService?
 
+    /// Reference to task controller for starting/stopping tasks
+    private weak var taskController: TaskController?
+
     /// Model context for database operations
     private var modelContext: ModelContext?
-
-    /// Callback to start a task (injected from TimeTracker)
-    public var onStartTask: ((UUID) -> Void)?
-
-    /// Callback to stop current task (injected from TimeTracker)
-    public var onStopTask: (() -> Void)?
 
     /// Currently active geofence place ID (to track auto-started tasks)
     private var activeGeofencePlaceID: UUID?
@@ -31,12 +28,14 @@ public final class GeofenceManager {
     /// Configure the manager with dependencies
     public func configure(
         locationService: LocationService,
+        taskController: TaskController,
         modelContext: ModelContext
     ) {
         self.locationService = locationService
+        self.taskController = taskController
         self.modelContext = modelContext
 
-        // Set up geofence callbacks
+        // Set up geofence callbacks from LocationService
         locationService.onGeofenceEnter = { [weak self] regionID in
             Task { @MainActor in
                 self?.handleGeofenceEnter(regionID: regionID)
@@ -114,9 +113,9 @@ public final class GeofenceManager {
             return
         }
 
-        // Start the task
+        // Start the task via protocol
         activeGeofencePlaceID = placeID
-        onStartTask?(taskID)
+        taskController?.startTaskByID(taskID, in: context)
 
         // Send notification
         sendNotification(
@@ -146,9 +145,9 @@ public final class GeofenceManager {
             return
         }
 
-        // Stop the task
+        // Stop the task via protocol
         activeGeofencePlaceID = nil
-        onStopTask?()
+        taskController?.stopCurrentEntry(in: context)
 
         // Send notification
         sendNotification(

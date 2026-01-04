@@ -7,7 +7,7 @@ import CoreLocation
 /// Central time tracking state manager
 @Observable
 @MainActor
-public final class TimeTracker {
+public final class TimeTracker: TaskController {
     /// Currently running time entry
     public var activeEntry: TimeEntry?
 
@@ -38,9 +38,6 @@ public final class TimeTracker {
     /// Reference to location service for GPS trail recording
     private weak var locationService: LocationService?
 
-    /// Reference to geofence manager
-    private weak var geofenceManager: GeofenceManager?
-
     /// Model context for GPS point insertion
     private var gpsModelContext: ModelContext?
 
@@ -66,30 +63,15 @@ public final class TimeTracker {
     /// Configure location tracking dependencies
     public func configureLocation(
         service: LocationService,
-        geofence: GeofenceManager,
         context: ModelContext
     ) {
         self.locationService = service
-        self.geofenceManager = geofence
         self.gpsModelContext = context
 
         // Set up location update callback for GPS trail
         service.onLocationUpdate = { [weak self] location in
             Task { @MainActor in
                 self?.handleLocationUpdate(location)
-            }
-        }
-
-        // Set up geofence callbacks
-        geofence.onStartTask = { [weak self] taskID in
-            Task { @MainActor in
-                self?.startTaskByID(taskID, in: context)
-            }
-        }
-
-        geofence.onStopTask = { [weak self] in
-            Task { @MainActor in
-                self?.stopCurrentEntry(in: context)
             }
         }
     }

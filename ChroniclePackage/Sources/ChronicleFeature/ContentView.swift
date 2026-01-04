@@ -53,16 +53,16 @@ public struct ContentView: View {
     }
 
     private func configureServices() {
-        // Configure location tracking
+        // Configure location tracking for GPS trails
         timeTracker.configureLocation(
             service: locationService,
-            geofence: geofenceManager,
             context: modelContext
         )
 
-        // Configure geofence manager
+        // Configure geofence manager with TimeTracker as task controller
         geofenceManager.configure(
             locationService: locationService,
+            taskController: timeTracker,
             modelContext: modelContext
         )
 
