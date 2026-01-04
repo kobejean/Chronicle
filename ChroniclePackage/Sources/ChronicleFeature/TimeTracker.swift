@@ -3,6 +3,9 @@ import SwiftData
 import Observation
 import UserNotifications
 import CoreLocation
+import OSLog
+
+private let logger = Logger(subsystem: "Chronicle", category: "TimeTracker")
 
 /// Central time tracking state manager
 @Observable
@@ -10,6 +13,9 @@ import CoreLocation
 public final class TimeTracker: TaskController {
     /// Currently running time entry
     public var activeEntry: TimeEntry?
+
+    /// Last error that occurred during tracking operations
+    public private(set) var lastError: TrackingError?
 
     // MARK: - Pomodoro (delegated to PomodoroTimer)
 
@@ -100,7 +106,7 @@ public final class TimeTracker: TaskController {
         }
         entry.gpsTrail?.append(point)
 
-        try? context.save()
+        saveContext(context, operation: "GPS point recording")
     }
 
     // MARK: - Task Tracking
@@ -111,12 +117,18 @@ public final class TimeTracker: TaskController {
             predicate: #Predicate { $0.id == taskID }
         )
 
-        guard let tasks = try? context.fetch(descriptor),
-              let task = tasks.first else {
-            return
+        do {
+            let tasks = try context.fetch(descriptor)
+            guard let task = tasks.first else {
+                logger.warning("Task not found: \(taskID)")
+                lastError = .taskNotFound(id: taskID)
+                return
+            }
+            startTask(task, in: context)
+        } catch {
+            logger.error("Failed to fetch task \(taskID): \(error.localizedDescription)")
+            lastError = .saveFailed(underlying: error)
         }
-
-        startTask(task, in: context)
     }
 
     /// Start tracking a task
@@ -148,7 +160,7 @@ public final class TimeTracker: TaskController {
             locationService?.startTracking()
         }
 
-        try? context.save()
+        saveContext(context, operation: "start task")
     }
 
     /// Stop the current time entry
@@ -166,7 +178,7 @@ public final class TimeTracker: TaskController {
         // Sync to widgets
         WidgetDataProvider.shared.clearActiveTask()
 
-        try? context.save()
+        saveContext(context, operation: "stop task")
     }
 
     /// Switch to a different task
@@ -206,29 +218,36 @@ public final class TimeTracker: TaskController {
             sortBy: [SortDescriptor(\.startTime, order: .reverse)]
         )
 
-        if let entries = try? context.fetch(descriptor), let running = entries.first {
-            activeEntry = running
+        do {
+            let entries = try context.fetch(descriptor)
+            if let running = entries.first {
+                activeEntry = running
 
-            // Sync to widgets
-            if let task = running.task {
-                WidgetDataProvider.shared.setActiveTask(
-                    id: task.id.uuidString,
-                    name: task.name,
-                    colorHex: task.colorHex,
-                    startTime: running.startTime
-                )
-            }
+                // Sync to widgets
+                if let task = running.task {
+                    WidgetDataProvider.shared.setActiveTask(
+                        id: task.id.uuidString,
+                        name: task.name,
+                        colorHex: task.colorHex,
+                        startTime: running.startTime
+                    )
+                }
 
-            // Restore pomodoro state if applicable
-            if let task = running.task,
-               let settings = task.pomodoroSettings,
-               settings.isEnabled {
-                // Note: We can't fully restore pomodoro progress across app restart
-                // Start a fresh work session
-                pomodoroTimer.start(with: settings)
+                // Restore pomodoro state if applicable
+                if let task = running.task,
+                   let settings = task.pomodoroSettings,
+                   settings.isEnabled {
+                    // Note: We can't fully restore pomodoro progress across app restart
+                    // Start a fresh work session
+                    pomodoroTimer.start(with: settings)
+                }
+            } else {
+                // No active entry - ensure widgets are cleared
+                WidgetDataProvider.shared.clearActiveTask()
             }
-        } else {
-            // No active entry - ensure widgets are cleared
+        } catch {
+            logger.error("Failed to load active entry: \(error.localizedDescription)")
+            lastError = .saveFailed(underlying: error)
             WidgetDataProvider.shared.clearActiveTask()
         }
     }
@@ -240,12 +259,26 @@ public final class TimeTracker: TaskController {
             sortBy: [SortDescriptor(\.sortOrder)]
         )
 
-        guard let tasks = try? context.fetch(descriptor) else { return }
-
-        let widgetTasks = tasks.prefix(4).map { task in
-            (id: task.id.uuidString, name: task.name, colorHex: task.colorHex)
+        do {
+            let tasks = try context.fetch(descriptor)
+            let widgetTasks = tasks.prefix(4).map { task in
+                (id: task.id.uuidString, name: task.name, colorHex: task.colorHex)
+            }
+            WidgetDataProvider.shared.setFavoriteTasks(Array(widgetTasks))
+        } catch {
+            logger.error("Failed to sync favorite tasks: \(error.localizedDescription)")
         }
+    }
 
-        WidgetDataProvider.shared.setFavoriteTasks(Array(widgetTasks))
+    // MARK: - Private Helpers
+
+    /// Save context with error handling
+    private func saveContext(_ context: ModelContext, operation: String) {
+        do {
+            try context.save()
+        } catch {
+            logger.error("Failed to save during \(operation): \(error.localizedDescription)")
+            lastError = .saveFailed(underlying: error)
+        }
     }
 }
