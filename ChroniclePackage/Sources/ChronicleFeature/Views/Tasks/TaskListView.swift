@@ -111,9 +111,12 @@ struct TaskRow: View {
 
             Spacer()
 
-            Text(task.todayDuration.shortFormatted)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // Use TimelineView for live duration updates
+            SwiftUI.TimelineView(.periodic(from: .now, by: 10.0)) { _ in
+                Text(task.todayDuration.shortFormatted)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

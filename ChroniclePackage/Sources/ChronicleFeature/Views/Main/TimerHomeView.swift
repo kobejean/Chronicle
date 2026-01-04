@@ -120,35 +120,37 @@ struct PomodoroTimerDisplay: View {
                 }
             }
 
-            // Timer ring with countdown
-            ZStack {
-                // Background ring
-                Circle()
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
-                    .frame(width: 140, height: 140)
+            // Timer ring with countdown - using TimelineView for live updates
+            SwiftUI.TimelineView(.periodic(from: .now, by: 1.0)) { _ in
+                ZStack {
+                    // Background ring
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
+                        .frame(width: 140, height: 140)
 
-                // Progress ring
-                Circle()
-                    .trim(from: 0, to: timeTracker.pomodoroProgress)
-                    .stroke(
-                        timeTracker.pomodoroState.phaseColor,
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                    )
-                    .frame(width: 140, height: 140)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 0.5), value: timeTracker.pomodoroProgress)
+                    // Progress ring
+                    Circle()
+                        .trim(from: 0, to: timeTracker.pomodoroProgress)
+                        .stroke(
+                            timeTracker.pomodoroState.phaseColor,
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        )
+                        .frame(width: 140, height: 140)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.5), value: timeTracker.pomodoroProgress)
 
-                // Time remaining
-                VStack(spacing: 4) {
-                    if timeTracker.isPomodoroPhaseWaiting {
-                        Text("Paused")
-                            .font(.system(size: 24, weight: .light, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text(formatTime(timeTracker.pomodoroTimeRemaining))
-                            .font(.system(size: 32, weight: .light, design: .monospaced))
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
+                    // Time remaining
+                    VStack(spacing: 4) {
+                        if timeTracker.isPomodoroPhaseWaiting {
+                            Text("Paused")
+                                .font(.system(size: 24, weight: .light, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(formatTime(timeTracker.pomodoroTimeRemaining))
+                                .font(.system(size: 32, weight: .light, design: .monospaced))
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
+                        }
                     }
                 }
             }
@@ -314,9 +316,12 @@ struct TaskRowButton: View {
 
                 Spacer()
 
-                Text(task.todayDuration.shortFormatted)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Use TimelineView for live duration updates (every 10 seconds for efficiency)
+                SwiftUI.TimelineView(.periodic(from: .now, by: 10.0)) { _ in
+                    Text(task.todayDuration.shortFormatted)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 if isActive {
                     Image(systemName: "stop.circle.fill")
