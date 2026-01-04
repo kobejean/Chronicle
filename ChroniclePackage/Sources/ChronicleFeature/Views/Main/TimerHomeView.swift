@@ -316,8 +316,8 @@ struct TaskRowButton: View {
 
                 Spacer()
 
-                // Use TimelineView for live duration updates (every 10 seconds for efficiency)
-                SwiftUI.TimelineView(.periodic(from: .now, by: 10.0)) { _ in
+                // Use TimelineView for live duration updates
+                SwiftUI.TimelineView(.periodic(from: .now, by: 1.0)) { _ in
                     Text(task.todayDuration.shortFormatted)
                         .font(.caption)
                         .foregroundStyle(.secondary)
